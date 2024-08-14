@@ -53,8 +53,14 @@ def process_polypgen(origin_folder, processed_folder):
         image = plt.imread(image_path)
         mask = plt.imread(mask_path)
         
+        # Ensure the mask is binary (single channel)
         if mask.ndim == 3:
-            mask = np.int64(np.all(mask[:, :, :3] == 1, axis=2))
+            # Assuming a colored mask where white (255, 255, 255) represents the mask
+            mask = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
+            _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+        elif mask.ndim == 2 and np.unique(mask).size > 2:
+            # If the mask is grayscale with more than 2 values, threshold it
+            _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
 
         image_resized = cv2.resize(image, (512, 512), interpolation=cv2.INTER_CUBIC)
         mask_resized = cv2.resize(mask, (512, 512), interpolation=cv2.INTER_NEAREST)

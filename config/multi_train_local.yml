@@ -8,7 +8,7 @@ data:
   val_folder: 'processed_data/polypgen/'
   test_folder: 'processed_data/polypgen/'
   save_folder: 'checkpoints/polypgen'
-  supervised_ratio: 0.6
+  supervised_ratio: 0.95
   train_aug: True
   img_size: 224
 semi:
@@ -17,7 +17,7 @@ train:
   l_batchsize: 8
   u_batchsize: 8
   num_workers: 0
-  num_epochs: 10
+  num_epochs: 80
   num_iters: False # num of updating for each epoch
   # batch_size uses args to define
   optimizer:

@@ -92,11 +92,36 @@ def main(config):
             plt.imshow(grid_predictions.permute(1, 2, 0))
         plt.show()
         
-    visualize_batch(next(iter(train_loader)))
-    visualize_batch(next(iter(val_loader)))
-    visualize_batch(next(iter(train_loader)))
-    visualize_batch(next(iter(val_loader)))
-    
+    def save_img_from_batch(batch, save_dir, normalize=True):
+        images = batch['image'].cpu()
+        labels = batch['label'].cpu()
+        
+        # Create the directory if it doesn't exist
+        os.makedirs(save_dir, exist_ok=True)
+        
+        for i, (image, label) in enumerate(zip(images, labels)):
+            # Optionally normalize the image and label
+            if normalize:
+                image = (image - image.min()) / (image.max() - image.min())
+                label = (label - label.min()) / (label.max() - label.min())
+
+            # Convert image tensor to numpy array and handle permuting
+            image_np = image.permute(1, 2, 0).numpy()
+            
+            # Check if the label is single-channel (grayscale) and handle it
+            if label.shape[0] == 1:
+                label_np = label.squeeze(0).numpy()  # Remove channel dimension for grayscale
+                plt.imsave(os.path.join(save_dir, f'label_{i}.png'), label_np, cmap='gray')
+            else:
+                label_np = label.permute(1, 2, 0).numpy()
+                plt.imsave(os.path.join(save_dir, f'label_{i}.png'), label_np)
+
+            # Save the image
+            plt.imsave(os.path.join(save_dir, f'image_{i}.png'), image_np)
+
+        print(f"Images and labels saved in {save_dir}")
+        
+
         
      
     model = SwinUnet(img_size=config.data.img_size)
