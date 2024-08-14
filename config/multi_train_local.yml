@@ -3,12 +3,12 @@ seed: 42
 debug: False
 log: False
 data:
-  name: 'isic2018'
-  train_folder: 'processed_data/isic2018/'
-  val_folder: 'processed_data/isic2018/'
-  test_folder: 'processed_data/isic2018/'
-  save_folder: 'checkpoints/isic2018'
-  supervised_ratio: 0.04
+  name: 'polypgen'
+  train_folder: 'processed_data/polypgen/'
+  val_folder: 'processed_data/polypgen/'
+  test_folder: 'processed_data/polypgen/'
+  save_folder: 'checkpoints/polypgen'
+  supervised_ratio: 0.6
   train_aug: True
   img_size: 224
 semi:
@@ -17,13 +17,13 @@ train:
   l_batchsize: 8
   u_batchsize: 8
   num_workers: 0
-  num_epochs: 80
+  num_epochs: 10
   num_iters: False # num of updating for each epoch
   # batch_size uses args to define
   optimizer:
     mode: 'adamw'
     adamw:
-      lr: '1e-4'
+      lr: 0.0001
       betas: 
         - 0.9
         - 0.999
