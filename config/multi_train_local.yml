@@ -27,10 +27,10 @@ train:
       betas: 
         - 0.9
         - 0.999
-      eps: '1e-8'
+      eps: 0.000001
       weight_decay: 0.05
     adam:
-      lr: '1e-4'
+      lr: 0.0001
       betas:
         - 0.9
         - 0.999
