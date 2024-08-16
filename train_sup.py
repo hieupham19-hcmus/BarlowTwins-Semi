@@ -7,6 +7,8 @@ from sqlite3 import adapt
 import yaml
 import os, time
 from datetime import datetime
+from tqdm import tqdm
+
 
 import pandas as pd
 import torch.nn as nn
@@ -86,36 +88,34 @@ def main(config):
 
 
 # =======================================================================================================
+
 def train_val(config, model, train_loader, val_loader, criterion):
-    # optimizer loss
+    # optimizer setup
     if config.train.optimizer.mode == 'adam':
-        # optimizer = optim.Adam(model.parameters(), lr=float(config.train.optimizer.adam.lr))
         print('choose wrong optimizer')
     elif config.train.optimizer.mode == 'adamw':
-        optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),lr=float(config.train.optimizer.adamw.lr),
+        optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=float(config.train.optimizer.adamw.lr),
                                 weight_decay=float(config.train.optimizer.adamw.weight_decay))
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
-    # ---------------------------------------------------------------------------
-    # Training and Validating
-    #----------------------------------------------------------------------------
     epochs = config.train.num_epochs
-    max_iou = 0 # use for record best model
-    max_dice = 0 # use for record best model
-    best_epoch = 0 # use for recording the best epoch
-    # create training data loading iteration
+    max_iou = 0
+    max_dice = 0
+    best_epoch = 0
     
     torch.save(model.state_dict(), best_model_dir)
+    
     for epoch in range(epochs):
         start = time.time()
-        # ----------------------------------------------------------------------
-        # train
-        # ---------------------------------------------------------------------
+        
+        # Training
         model.train()
-        dice_train_sum= 0
+        dice_train_sum = 0
         iou_train_sum = 0
         loss_train_sum = 0
         num_train = 0
+        
+        train_loader = tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{epochs}", unit="batch")
         for idx, batch in enumerate(train_loader):
             img = batch['image'].cuda().float()
             label = batch['label'].cuda().float()
@@ -125,141 +125,121 @@ def train_val(config, model, train_loader, val_loader, criterion):
             output = model(img)
             output = torch.sigmoid(output)
             
-            # calculate loss
+            # Calculate loss
             assert (output.shape == label.shape)
-            losses = []
-            for function in criterion:
-                losses.append(function(output, label))
-            
-            loss = sum(losses) / 2
+            dice_loss_value = criterion[1](output, label)
+            bce_loss_value = criterion[0](output, label)
+            loss = (dice_loss_value + bce_loss_value) / 2
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             loss_train_sum += loss.item() * batch_len
             
-            # calculate metrics
+            # Calculate metrics
             with torch.no_grad():
                 output = output.cpu().numpy() > 0.5
                 label = label.cpu().numpy()
-                assert (output.shape == label.shape)
                 dice_train = metrics.dc(output, label)
                 iou_train = metrics.jc(output, label)
                 dice_train_sum += dice_train * batch_len
                 iou_train_sum += iou_train * batch_len
-                
-            iter = epoch * len(train_loader) + idx
-                
-            file_log.write('Epoch {}, iter {}, Dice Sup Loss: {}, BCE Sup Loss: {}\n'.format(
-                epoch, iter + 1, round(losses[1].item(), 5), round(losses[0].item(), 5)
-            ))
-            file_log.flush()
-            print('Epoch {}, iter {}, Dice Sup Loss: {}, BCE Sup Loss: {}'.format(
-                epoch, iter + 1, round(losses[1].item(), 5), round(losses[0].item(), 5)
-            ))
             
             num_train += batch_len
             
-            # end one test batch
-            if config.debug: break
-                
-
-        # print
-        file_log.write('Epoch {}, Total train step {} || AVG_loss: {}, Avg Dice score: {}, Avg IOU: {}\n'.format(epoch, 
-                                                                                                      iter, 
-                                                                                                      round(loss_train_sum / num_train,5), 
-                                                                                                      round(dice_train_sum/num_train,4), 
-                                                                                                      round(iou_train_sum/num_train,4)))
-        file_log.flush()
-        print('Epoch {}, Total train step {} || AVG_loss: {}, Avg Dice score: {}, Avg IOU: {}'.format(epoch, 
-                                                                                                      len(train_loader), 
-                                                                                                      round(loss_train_sum / num_train,5), 
-                                                                                                      round(dice_train_sum/num_train,4), 
-                                                                                                      round(iou_train_sum/num_train,4)))
+            # Update progress bar with current losses and learning rate
+            train_loader.set_postfix({
+                'Dice Loss': dice_loss_value.item(),
+                'BCE Loss': bce_loss_value.item(),
+                'Total Loss': loss.item(),
+                'LR': optimizer.param_groups[0]['lr'],
+                'GPU Memory': f'{torch.cuda.memory_allocated() / (1024 ** 2):.2f} MB'
+            })
             
-
-
-        # -----------------------------------------------------------------
-        # validate
-        # ----------------------------------------------------------------
-        model.eval()
+            if config.debug:
+                break
         
-        dice_val_sum= 0
+        # Print and log training results
+        avg_loss_train = round(loss_train_sum / num_train, 5)
+        avg_dice_train = round(dice_train_sum / num_train, 4)
+        avg_iou_train = round(iou_train_sum / num_train, 4)
+        file_log.write(f'Epoch {epoch}, Total train step {len(train_loader)} || AVG_loss: {avg_loss_train}, Avg Dice score: {avg_dice_train}, Avg IOU: {avg_iou_train}\n')
+        file_log.flush()
+        print(f'Epoch {epoch}, Total train step {len(train_loader)} || AVG_loss: {avg_loss_train}, Avg Dice score: {avg_dice_train}, Avg IOU: {avg_iou_train}')
+
+        # Validation
+        model.eval()
+        dice_val_sum = 0
         iou_val_sum = 0
         loss_val_sum = 0
         num_val = 0
-
+        
+        val_loader = tqdm(val_loader, desc=f"Validation Epoch {epoch+1}/{epochs}", unit="batch")
         for batch_id, batch in enumerate(val_loader):
             img = batch['image'].cuda().float()
             label = batch['label'].cuda().float()
             
             batch_len = img.shape[0]
-
+            
             with torch.no_grad():
                 output = model(img)
-                    
                 output = torch.sigmoid(output)
-
-                # calculate loss
+                
                 assert (output.shape == label.shape)
-                losses = []
-                for function in criterion:
-                    losses.append(function(output, label))
-                loss_val_sum += sum(losses)*batch_len
-
-                # calculate metrics
+                dice_loss_value = criterion[1](output, label)
+                bce_loss_value = criterion[0](output, label)
+                loss_val_sum += (dice_loss_value + bce_loss_value) * batch_len
+                
                 output = output.cpu().numpy() > 0.5
                 label = label.cpu().numpy()
-                dice_val_sum += metrics.dc(output, label)*batch_len
-                iou_val_sum += metrics.jc(output, label)*batch_len
+                dice_val_sum += metrics.dc(output, label) * batch_len
+                iou_val_sum += metrics.jc(output, label) * batch_len
 
                 num_val += batch_len
-                # end one val batch
-                if config.debug: break
+                if config.debug:
+                    break
 
-        # logging per epoch for one dataset
-        loss_val_epoch, dice_val_epoch, iou_val_epoch = loss_val_sum/num_val, dice_val_sum/num_val, iou_val_sum/num_val     
-
-        # print
-        file_log.write('Epoch {}, Validation || sum_loss: {}, Dice score: {}, IOU: {}\n'.
-                format(epoch, round(loss_val_epoch.item(),5), 
-                round(dice_val_epoch,4), round(iou_val_epoch,4)))
-        file_log.flush()
+            # Update progress bar with current losses
+            val_loader.set_postfix({
+                'Dice Loss': dice_loss_value.item(),
+                'BCE Loss': bce_loss_value.item(),
+                'Total Loss': loss_val_sum / num_val,
+                'GPU Memory': f'{torch.cuda.memory_allocated() / (1024 ** 2):.2f} MB'
+            })
         
-        print('Epoch {}, Validation || sum_loss: {}, Dice score: {}, IOU: {}'.
-                format(epoch, round(loss_val_epoch.item(), 5), 
-                round(dice_val_epoch, 4), round(iou_val_epoch, 4)))
+        # Print and log validation results
+        loss_val_epoch = loss_val_sum / num_val
+        dice_val_epoch = dice_val_sum / num_val
+        iou_val_epoch = iou_val_sum / num_val
+        file_log.write(f'Epoch {epoch}, Validation || sum_loss: {round(loss_val_epoch.item(), 5)}, Dice score: {round(dice_val_epoch, 4)}, IOU: {round(iou_val_epoch, 4)}\n')
+        file_log.flush()
+        print(f'Epoch {epoch}, Validation || sum_loss: {round(loss_val_epoch.item(), 5)}, Dice score: {round(dice_val_epoch, 4)}, IOU: {round(iou_val_epoch, 4)}')
 
-
-        # scheduler step, record lr
+        # Scheduler step
         scheduler.step()
 
-        # store model using the average iou
+        # Save best model based on dice score
         if dice_val_epoch > max_dice:
             torch.save(model.state_dict(), best_model_dir)
             max_dice = dice_val_epoch
             best_epoch = epoch
-            file_log.write('New best epoch {}!===============================\n'.format(epoch))
+            file_log.write(f'New best epoch {epoch}!===============================\n')
             file_log.flush()
-            print('New best epoch {}!==============================='.format(epoch))
+            print(f'New best epoch {epoch}!===============================')
         
         end = time.time()
-        time_elapsed = end-start
-        file_log.write('Training and evaluating on epoch{} complete in {:.0f}m {:.0f}s\n'.
-                    format(epoch, time_elapsed // 60, time_elapsed % 60))
+        time_elapsed = end - start
+        file_log.write(f'Training and evaluating on epoch {epoch} complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s\n')
         file_log.flush()
-        print('Training and evaluating on epoch{} complete in {:.0f}m {:.0f}s'.
-            format(epoch, time_elapsed // 60, time_elapsed % 60))
+        print(f'Training and evaluating on epoch {epoch} complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
 
-        # end one epoch
-        if config.debug: return
+        if config.debug:
+            return
     
-    file_log.write('Complete training ---------------------------------------------------- \n The best epoch is {}\n'.format(best_epoch))
+    file_log.write(f'Complete training ---------------------------------------------------- \n The best epoch is {best_epoch}\n')
     file_log.flush()
-    
-    print('Complete training ---------------------------------------------------- \n The best epoch is {}'.format(best_epoch))
+    print(f'Complete training ---------------------------------------------------- \n The best epoch is {best_epoch}')
 
-    return 
-
+    return
 
 
 

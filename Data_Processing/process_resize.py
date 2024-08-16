@@ -62,8 +62,8 @@ def process_polypgen(origin_folder, processed_folder):
             # If the mask is grayscale with more than 2 values, threshold it
             _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
 
-        image_resized = cv2.resize(image, (512, 512), interpolation=cv2.INTER_CUBIC)
-        mask_resized = cv2.resize(mask, (512, 512), interpolation=cv2.INTER_NEAREST)
+        image_resized = cv2.resize(image, (224, 224), interpolation=cv2.INTER_CUBIC)
+        mask_resized = cv2.resize(mask, (224, 224), interpolation=cv2.INTER_NEAREST)
 
         # Save resized images and masks
         np.save(os.path.join(processed_folder, 'images', f'{image_id}.npy'), image_resized)

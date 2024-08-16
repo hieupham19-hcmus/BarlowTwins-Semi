@@ -68,7 +68,7 @@ def display_image(original_image_path, output):
 
 # Assuming SwinUnet is your model class
 model_path = '/mnt/d/RESEARCH/BarlowTwins-Semi/checkpoints/polypgen/tmp_0.95/fold1/best.pth'
-image_path = '/mnt/d/RESEARCH/BarlowTwins-Semi/data/polypgen/images/132.jpg'
+image_path = '/mnt/d/RESEARCH/BarlowTwins-Semi/data/polypgen/images/126.jpg'
 img_size = 224  # Example image size
 
 def save_image(image, path):
