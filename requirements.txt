@@ -11,6 +11,7 @@ argon2-cffi-bindings @ file:///home/conda/feedstock_root/build_artifacts/argon2-
 arrow @ file:///home/conda/feedstock_root/build_artifacts/arrow_1696128962909/work
 asttokens==2.4.1
 attrs @ file:///home/conda/feedstock_root/build_artifacts/attrs_1722977137225/work
+backcall==0.2.0
 beautifulsoup4 @ file:///home/conda/feedstock_root/build_artifacts/beautifulsoup4_1705564648255/work
 bleach @ file:///home/conda/feedstock_root/build_artifacts/bleach_1696630167146/work
 bokeh @ file:///home/conda/feedstock_root/build_artifacts/bokeh_1719324651922/work
@@ -52,6 +53,7 @@ decorator==5.1.1
 defusedxml @ file:///home/conda/feedstock_root/build_artifacts/defusedxml_1615232257335/work
 distributed @ file:///home/conda/feedstock_root/build_artifacts/distributed_1721444339227/work
 distributed-ucxx @ file:///opt/conda/conda-bld/work/python/distributed-ucxx
+docopt==0.6.2
 efficientnet_pytorch==0.7.1
 einops==0.8.0
 entrypoints @ file:///home/conda/feedstock_root/build_artifacts/entrypoints_1643888246732/work
@@ -77,7 +79,7 @@ imageio @ file:///home/conda/feedstock_root/build_artifacts/imageio_171923499909
 importlib_metadata @ file:///home/conda/feedstock_root/build_artifacts/importlib-metadata_1721856510709/work
 importlib_resources @ file:///home/conda/feedstock_root/build_artifacts/importlib_resources_1711040877059/work
 ipykernel==6.29.5
-ipython==8.26.0
+ipython==8.12.3
 isoduration @ file:///home/conda/feedstock_root/build_artifacts/isoduration_1638811571363/work/dist
 jedi==0.19.1
 Jinja2 @ file:///home/conda/feedstock_root/build_artifacts/jinja2_1715127149914/work
@@ -147,6 +149,7 @@ partd @ file:///home/conda/feedstock_root/build_artifacts/partd_1715026491486/wo
 pexpect==4.9.0
 pickleshare==0.7.5
 pillow @ file:///home/conda/feedstock_root/build_artifacts/pillow_1712154447422/work
+pipreqs==0.5.0
 pkgutil_resolve_name @ file:///home/conda/feedstock_root/build_artifacts/pkgutil-resolve-name_1694617248815/work
 platformdirs @ file:///home/conda/feedstock_root/build_artifacts/platformdirs_1715777629804/work
 pretrainedmodels==0.7.4
@@ -238,6 +241,7 @@ websockets @ file:///home/conda/feedstock_root/build_artifacts/websockets_166680
 xarray @ file:///home/conda/feedstock_root/build_artifacts/xarray_1722348170975/work
 xgboost @ file:///home/conda/feedstock_root/build_artifacts/xgboost-split_1722516883277/work/python-package
 xyzservices @ file:///home/conda/feedstock_root/build_artifacts/xyzservices_1717752109663/work
+yarg==0.1.9
 yarl @ file:///home/conda/feedstock_root/build_artifacts/yarl_1705508295175/work
 zict @ file:///home/conda/feedstock_root/build_artifacts/zict_1681770155528/work
 zipp @ file:///home/conda/feedstock_root/build_artifacts/zipp_1723591248676/work

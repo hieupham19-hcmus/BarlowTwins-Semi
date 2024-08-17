@@ -15,14 +15,37 @@ import torch.nn as nn
 import torch.utils.data
 import torch.optim as optim
 import medpy.metric.binary as metrics
+import matplotlib.pyplot as plt
+import numpy
+import torchvision.utils as vutils
 
 from Data_Processing.create_dataset import get_dataset, EndoscopyDataset
 from Utils.losses import dice_loss
 from Utils.pieces import DotDict
 from Utils.functions import fix_all_seed
 from Models.Transformer.SwinUnet import SwinUnet
+from Models.Unet import UNet
 
 torch.cuda.empty_cache()
+
+def visualize_batch(batch, predictions=None):
+    images = batch['image'].cpu()
+    labels = batch['label'].cpu()
+    grid_images = vutils.make_grid(images, nrow=2, normalize=True)
+    grid_labels = vutils.make_grid(labels, nrow=2, normalize=True)
+    plt.figure(figsize=(12, 8))
+    plt.subplot(1, 2, 1)
+    plt.title("Images")
+    plt.imshow(grid_images.permute(1, 2, 0))
+    plt.subplot(1, 2, 2)
+    plt.title("Labels")
+    plt.imshow(grid_labels.permute(1, 2, 0))
+    if predictions is not None:
+        grid_predictions = vutils.make_grid(predictions.cpu(), nrow=8, normalize=True)
+        plt.figure(figsize=(6, 8))
+        plt.title("Predictions")
+        plt.imshow(grid_predictions.permute(1, 2, 0))
+    plt.show()
 
 def main(config):
     
@@ -53,9 +76,7 @@ def main(config):
     print(len(train_loader), len(dataset['lb_dataset']))
 
     
-    model  = SwinUnet(img_size=config.data.img_size)
-
-
+    model = UNet(n_channels=3, n_classes=1)
 
 
     total_trainable_params = sum(
